@@ -1,0 +1,427 @@
+<title>Unpaid Payments Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+  /* Layout: centered single-column list, orange header card */
+  :root {
+    --bg: #ffffff;
+    --bg-2: #f7f7f5;
+    --surface: #fafaf8;
+    --border: #e8e6e1;
+    --fg: #1a1917;
+    --fg-2: #6b6860;
+    --orange: #f26f21;
+    --orange-dark: #d85f14;
+    --orange-fg: #ffffff;
+    --red: #c8382a;
+    --red-bg: #fff2f1;
+    --green: #1a7a4a;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #18170f;
+      --bg-2: #211f15;
+      --surface: #1e1d13;
+      --border: #302e22;
+      --fg: #f0ede4;
+      --fg-2: #908c7e;
+      --orange: #f57a2a;
+      --orange-dark: #e0691a;
+      --orange-fg: #ffffff;
+      --red: #e85a4a;
+      --red-bg: #2a1410;
+      --green: #3dbf73;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #18170f;
+    --bg-2: #211f15;
+    --surface: #1e1d13;
+    --border: #302e22;
+    --fg: #f0ede4;
+    --fg-2: #908c7e;
+    --orange: #f57a2a;
+    --orange-dark: #e0691a;
+    --orange-fg: #ffffff;
+    --red: #e85a4a;
+    --red-bg: #2a1410;
+    --green: #3dbf73;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 48px 80px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Page header */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .page-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+  }
+
+  .page-date {
+    font-size: 12px;
+    color: var(--fg-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Total card */
+  .total-card {
+    background: var(--orange);
+    color: var(--orange-fg);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .total-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.85;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .total-amount {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  .total-meta {
+    font-size: 12px;
+    opacity: 0.85;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Section header */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--fg-2);
+  }
+
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--fg-2);
+  }
+
+  .legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--red);
+    flex-shrink: 0;
+  }
+
+  /* Invoice rows */
+  .invoice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .invoice {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 16px;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+
+  .invoice.paid-out {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+
+  .invoice-info {
+    min-width: 0;
+  }
+
+  .invoice-customer {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .invoice-sub {
+    font-size: 12px;
+    color: var(--fg-2);
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .days-badge {
+    font-weight: 600;
+    color: var(--fg-2);
+  }
+
+  .invoice.overdue-critical .days-badge {
+    color: var(--red);
+  }
+
+  .invoice.overdue-critical {
+    border-color: color-mix(in srgb, var(--red) 25%, var(--border));
+    background: color-mix(in srgb, var(--red-bg) 60%, var(--surface));
+  }
+
+  .invoice-amount {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .mark-paid-btn {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg-2);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    font-family: inherit;
+  }
+
+  .mark-paid-btn:hover {
+    background: var(--orange);
+    color: var(--orange-fg);
+    border-color: var(--orange);
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    color: var(--fg-2);
+    font-size: 14px;
+    padding-block: 52px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  .empty-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .empty-state p {
+    margin: 0;
+    font-weight: 500;
+    color: var(--fg-2);
+  }
+
+  @media (max-width: 480px) {
+    .invoice {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .invoice-amount {
+      text-align: left;
+    }
+
+    .mark-paid-btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>
+
+<div class="wrap">
+  <div class="page-header">
+    <h1 class="page-title">Unpaid Payments Tracker</h1>
+    <span class="page-date" id="todayDate"></span>
+  </div>
+
+  <div class="total-card">
+    <div>
+      <div class="total-label">Total Owed</div>
+      <div class="total-amount" id="totalAmount">SGD 0.00</div>
+    </div>
+    <div class="total-meta" id="invoiceCount">0 overdue invoices</div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Overdue invoices · sorted by days late</span>
+    <span class="legend"><span class="legend-dot"></span> over 30 days</span>
+  </div>
+
+  <div class="invoice-list" id="invoiceList"></div>
+  <div class="empty-state" id="emptyState" hidden>
+    <span class="empty-icon">🎉</span>
+    <p>All invoices are paid up.</p>
+  </div>
+</div>
+
+<script>
+  const csvData = `customer,amount,due_date
+Tan Trading,1200,2026-10-01
+Lim Florist,450,2026-10-12
+Ong Bakery,980,2026-09-25
+Koh Events,2300,2026-10-20
+Wong Printing,610,2026-10-05
+Ng Catering,1750,2026-09-30
+Lee Motors,4100,2026-10-08
+Teo Logistics,1500,2026-09-28`;
+
+  function parseCSV(text) {
+    const [, ...rows] = text.trim().split('\n');
+    return rows.map((line, i) => {
+      const [customer, amount, due_date] = line.split(',');
+      return { id: 'inv-' + i, customer: customer.trim(), amount: parseFloat(amount), due_date: due_date.trim() };
+    });
+  }
+
+  let invoices = parseCSV(csvData);
+
+  function today() {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t;
+  }
+
+  function daysLate(dueDateStr) {
+    const due = new Date(dueDateStr + 'T00:00:00');
+    return Math.floor((today() - due) / 86400000);
+  }
+
+  function fmtSGD(n) {
+    return 'SGD ' + n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtDate(s) {
+    return new Date(s + 'T00:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function render() {
+    const overdue = invoices
+      .filter(inv => daysLate(inv.due_date) > 0)
+      .sort((a, b) => daysLate(b.due_date) - daysLate(a.due_date));
+
+    const total = overdue.reduce((s, inv) => s + inv.amount, 0);
+    document.getElementById('totalAmount').textContent = fmtSGD(total);
+    const c = overdue.length;
+    document.getElementById('invoiceCount').textContent = c + (c === 1 ? ' overdue invoice' : ' overdue invoices');
+
+    const listEl = document.getElementById('invoiceList');
+    const emptyEl = document.getElementById('emptyState');
+    listEl.innerHTML = '';
+
+    if (overdue.length === 0) {
+      emptyEl.hidden = false;
+      return;
+    }
+    emptyEl.hidden = true;
+
+    overdue.forEach(inv => {
+      const late = daysLate(inv.due_date);
+      const critical = late > 30;
+
+      const row = document.createElement('div');
+      row.className = 'invoice' + (critical ? ' overdue-critical' : '');
+      row.id = inv.id;
+      row.innerHTML = `
+        <div class="invoice-info">
+          <div class="invoice-customer">${inv.customer}</div>
+          <div class="invoice-sub">Due ${fmtDate(inv.due_date)} &middot; <span class="days-badge">${late}d late</span></div>
+        </div>
+        <div class="invoice-amount">${fmtSGD(inv.amount)}</div>
+        <button class="mark-paid-btn" data-id="${inv.id}">Mark paid</button>
+      `;
+      listEl.appendChild(row);
+    });
+
+    listEl.querySelectorAll('.mark-paid-btn').forEach(btn => {
+      btn.addEventListener('click', () => markPaid(btn.dataset.id));
+    });
+  }
+
+  function markPaid(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('paid-out');
+    setTimeout(() => {
+      invoices = invoices.filter(inv => inv.id !== id);
+      render();
+    }, 230);
+  }
+
+  // Set today's date in the header
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  render();
+</script>
